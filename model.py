@@ -4,6 +4,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 import numpy as np
 import csv
 import os
+import pandas as pd
 
 def load_data(*, dtype=torch.float32):
     """Load forest cover type dataset, normalize, and split into train/test."""
@@ -21,12 +22,21 @@ def load_data(*, dtype=torch.float32):
 
     print(x1.shape, x2.shape, x3.shape, x4.shape)
     X = torch.tensor(np.column_stack([x1, x2, x3, x4]), dtype=dtype)
-    y_encoded = encoder.fit_transform([[r["CLNSIG"]] for r in rows]).argmax(axis=1)
-    y = torch.tensor(y_encoded, dtype=torch.long)
-    num_classes = len(encoder.categories_[0])  # number of unique CLNSIG values
+    label_map = {
+        "Oncogenic" : 1,
+        "Likely_oncogenic": 1,
+        "Pathogenic": 2,
+        "Likely_pathogenic": 2,
+        "Benign": 3,
+        "Likely_benign": 3
+    }
+    clnsig = [r['CLNSIG'] for r in rows]
+    y_raw = pd.Series(clnsig).map(label_map)
+    # y_encoded = encoder.fit_transform(y_raw).argmax(axis=1)
+    y = torch.tensor(y_raw)
+    num_classes = len(y.unique())  # number of unique CLNSIG values
     print(num_classes)  # check this
     return X, y, X.shape, num_classes
-
 
 if __name__ == "__main__":
     X, y, shape, num_classes = load_data()
@@ -68,8 +78,12 @@ if __name__ == "__main__":
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        logits_test = model(X_test)
+        loss_test = loss_fn(logits, y_test)
+
         if epoch % 10 == 0:
-            print("Epoch:  ", epoch, "   -   Loss:  ", loss)
+            print("Epoch:  ", epoch, "   -   Train Loss:  ", loss, "   -   Test Loss:  ", loss)
 
     print("Checkpoint A:")
     with torch.no_grad():

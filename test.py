@@ -15,16 +15,20 @@ def parse_info(info_str):
 
 # --- read the VCF ---
 records = []
+prev_chrom = 0
 with gzip.open('clinvar (1).vcf.gz', 'rt') as f:
     for line in f:
         if line.startswith('#'):
             continue  # skip header lines
         
         parts = line.strip().split('\t')
+
         chrom, pos, id_, ref, alt, qual, filter_, info = parts[:8]
-        
-        if str(chrom) != "1":
-            break
+        if chrom != prev_chrom:
+            print(chrom)
+        # if str(chrom) != "1":
+        #     break
+
         row = {
             'CHROM': chrom,
             'POS':   pos,
@@ -34,7 +38,14 @@ with gzip.open('clinvar (1).vcf.gz', 'rt') as f:
         }
         # parse INFO and merge into row
         row.update(parse_info(info))
-        records.append(row)
+        # print(row)
+        if 'CLNSIG' in row.keys():
+            if ((row['CLNSIG'] == 'Benign') | (row['CLNSIG'] == 'Likely_benign') | (row['CLNSIG'] == 'Pathogenic') | (row['CLNSIG'] == 'Likely_pathogenic') | (row['CLNSIG'] == 'Oncogenic') | (row['CLNSIG'] == 'Likely_oncogenic')):
+                if (row['CLNVC'] == "single_nucleotide_variant"):
+                    records.append(row)
+        prev_chrom = chrom
+        if str(chrom) == "4":
+            break
 
 df = pd.DataFrame(records)
 df.to_csv('clinvar_parsed.csv', index=False)
