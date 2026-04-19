@@ -1,18 +1,3 @@
-# import gzip
-
-# with gzip.open("clinvar (1).vcf.gz", "rt") as f:
-#     for line in f:
-#         if line.startswith("#"):
-#             continue  # skip header lines
-#         fields = line.strip().split("\t")
-#         chrom  = fields[0]
-#         pos    = fields[1]
-#         ref    = fields[3]
-#         alt    = fields[4]
-#         info   = fields[7]
-#         print(chrom, pos, ref, alt, info)
-#         print("----")
-
 import gzip
 import pandas as pd
 
