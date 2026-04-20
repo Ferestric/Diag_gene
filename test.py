@@ -13,10 +13,18 @@ def parse_info(info_str):
             info_dict[field] = True
     return info_dict
 
+# Target cancer-relevant chromosomes
+CANCER_CHROMS = {'17', '13', '12', '7', '3', '8'}
+
+# Clear labels (not uncertain significance or conflicting)
+KEEP_SIGS = {
+    'Benign', 'Likely_benign',
+    'Pathogenic', 'Likely_pathogenic'
+}
+
 # --- read the VCF ---
 records = []
-prev_chrom = 0
-with gzip.open('clinvar (1).vcf.gz', 'rt') as f:
+with gzip.open('clinvar.vcf.gz', 'rt') as f:
     for line in f:
         if line.startswith('#'):
             continue  # skip header lines
@@ -24,28 +32,29 @@ with gzip.open('clinvar (1).vcf.gz', 'rt') as f:
         parts = line.strip().split('\t')
 
         chrom, pos, id_, ref, alt, qual, filter_, info = parts[:8]
-        if chrom != prev_chrom:
-            print(chrom)
-        # if str(chrom) != "1":
-        #     break
+        if chrom not in CANCER_CHROMS:
+            continue
+        
+        info_dict = parse_info(info)
+
+        if info_dict.get('CLNSIG') not in KEEP_SIGS: # skip unwanted significance labels
+            continue
+        
+        if info_dict.get('CLNVC') != "single_nucleotide_variant": # skip non-single variants
+            continue
 
         row = {
             'CHROM': chrom,
             'POS':   pos,
             'ID':    id_,
             'REF':   ref,
-            'ALT':   alt,
+            'ALT':   alt
         }
         # parse INFO and merge into row
-        row.update(parse_info(info))
-        # print(row)
-        if 'CLNSIG' in row.keys():
-            if ((row['CLNSIG'] == 'Benign') | (row['CLNSIG'] == 'Likely_benign') | (row['CLNSIG'] == 'Pathogenic') | (row['CLNSIG'] == 'Likely_pathogenic') | (row['CLNSIG'] == 'Oncogenic') | (row['CLNSIG'] == 'Likely_oncogenic')):
-                if (row['CLNVC'] == "single_nucleotide_variant"):
-                    records.append(row)
-        prev_chrom = chrom
-        if str(chrom) == "4":
-            break
-
+        row.update(info_dict)
+        records.append(row)
+        
 df = pd.DataFrame(records)
 df.to_csv('clinvar_parsed.csv', index=False)
+print(df['CHROM'].value_counts())
+print(df['CLNSIG'].value_counts())
