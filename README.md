@@ -1,6 +1,11 @@
 # Diag_gene
 Diagnose cancer based on gene sequence
 
+requirements:
+- gzip
+- numpy
+- clinvar.vcf.gz (file from clinvar)
+    
 model.py - where the model architecture is defined
  - load_data():
     - read csv file
@@ -9,7 +14,7 @@ model.py - where the model architecture is defined
 read_file.py - made to check how many unique values there are in a certain column. For example, how many diagnosis is in CLNSIG
   
 
-test.py - File to extract data from clinvar.vcf.gz
+parse_data.py - File to extract data from clinvar.vcf.gz
   - For simple columns such as:
             'CHROM': chrom,
             'POS':   pos,
